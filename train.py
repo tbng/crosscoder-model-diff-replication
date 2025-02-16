@@ -1,29 +1,52 @@
 # %%
-from utils import *
+from transformer_lens import HookedTransformer
+from utils import arg_parse_update_cfg
+from datasets import load_dataset
 from trainer import Trainer
 # %%
 device = 'cuda:0'
 
+
+def get_gsm8k_dataset(split='test'): # split can be train
+    dataset = load_dataset("gsm8k", "main")
+    test_set = dataset[split]
+
+    question = [f"{example['question']}\n" for example in test_set]
+    answer = []
+    # get numerical answer
+    for example in test_set['answer']:
+        ans = example.split('####')[-1]
+        ans = ans.replace(',', '') 
+        try:
+            ans = float(ans)
+        except ValueError:
+            ans = float("inf")
+        answer.append(ans)
+    return question, answer
+
+
+
 base_model = HookedTransformer.from_pretrained(
-    "gemma-2-2b", 
+    "Qwen/Qwen2.5-1.5B",
     device=device, 
 )
 
 chat_model = HookedTransformer.from_pretrained(
-    "gemma-2-2b-it", 
+    "Qwen/Qwen2.5-Math-1.5B",
     device=device, 
 )
 
 # %%
-all_tokens = load_pile_lmsys_mixed_tokens()
+train_questions, train_answers = get_gsm8k_dataset(split='train')
+all_tokens = base_model.tokenizer(train_questions, padding=True, return_tensors="pt")
 
 # %%
 default_cfg = {
-    "seed": 49,
-    "batch_size": 4096,
+    "seed": 42,
+    "batch_size": 100,
     "buffer_mult": 128,
     "lr": 5e-5,
-    "num_tokens": 400_000_000,
+    "num_tokens": 400_000,
     "l1_coeff": 2,
     "beta1": 0.9,
     "beta2": 0.999,
@@ -31,7 +54,7 @@ default_cfg = {
     "dict_size": 2**14,
     "seq_len": 1024,
     "enc_dtype": "fp32",
-    "model_name": "gemma-2-2b",
+    "model_name": "qwen2_5_1_5B",
     "site": "resid_pre",
     "device": "cuda:0",
     "model_batch_size": 4,
@@ -39,9 +62,10 @@ default_cfg = {
     "save_every": 30000,
     "dec_init_norm": 0.08,
     "hook_point": "blocks.14.hook_resid_pre",
-    "wandb_project": "YOUR_WANDB_PROJECT",
-    "wandb_entity": "YOUR_WANDB_ENTITY",
+    "wandb_project": "crosscoder",
+    "wandb_entity": "binhnt",
 }
+
 cfg = arg_parse_update_cfg(default_cfg)
 
 trainer = Trainer(cfg, base_model, chat_model, all_tokens)

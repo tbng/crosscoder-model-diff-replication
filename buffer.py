@@ -46,9 +46,11 @@ class Buffer:
         for i in tqdm.tqdm(
             range(n_batches_for_norm_estimate), desc="Estimating norm scaling factor"
         ):
-            tokens = self.all_tokens[i * batch_size : (i + 1) * batch_size]
+            tokens = self.all_tokens.input_ids[i * batch_size : (i + 1) * batch_size]
+            masks = self.all_tokens.attention_mask[i * batch_size : (i + 1) * batch_size]
             _, cache = model.run_with_cache(
                 tokens,
+                attention_mask=masks,
                 names_filter=self.cfg["hook_point"],
                 return_type=None,
             )
@@ -71,18 +73,23 @@ class Buffer:
                 num_batches = self.buffer_batches // 2
             self.first = False
             for _ in tqdm.trange(0, num_batches, self.cfg["model_batch_size"]):
-                tokens = self.all_tokens[
+                tokens = self.all_tokens.input_ids[
+                    self.token_pointer : min(
+                        self.token_pointer + self.cfg["model_batch_size"], num_batches
+                    )
+                ]
+                masks = self.all_tokens.attention_mask[
                     self.token_pointer : min(
                         self.token_pointer + self.cfg["model_batch_size"], num_batches
                     )
                 ]
                 _, cache_A = self.model_A.run_with_cache(
-                    tokens, names_filter=self.cfg["hook_point"]
+                    tokens, attention_mask=masks, names_filter=self.cfg["hook_point"]
                 )
                 cache_A: ActivationCache
 
                 _, cache_B = self.model_B.run_with_cache(
-                    tokens, names_filter=self.cfg["hook_point"]
+                    tokens, attention_mask=masks, names_filter=self.cfg["hook_point"]
                 )
                 cache_B: ActivationCache
 
