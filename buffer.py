@@ -65,7 +65,7 @@ class Buffer:
     @torch.no_grad()
     def refresh(self):
         self.pointer = 0
-        print("Refreshing the buffer!")
+        #print("Refreshing the buffer!")
         with torch.autocast("cuda", torch.bfloat16):
             if self.first:
                 num_batches = self.buffer_batches
