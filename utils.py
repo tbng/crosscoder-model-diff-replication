@@ -194,3 +194,22 @@ def load_pile_lmsys_mixed_tokens():
         torch.save(all_tokens, "./data/pile-lmsys-mix-1m-tokenized-gemma-2.pt")
         print(f"Saved tokens to disk")
     return all_tokens
+
+
+def get_gsm8k_dataset(split='test'): # split can be train
+    dataset = load_dataset("gsm8k", "main")
+    test_set = dataset[split]
+
+    question = [f"{example['question']}\n" for example in test_set]
+    answer= [f"{example['answer']}\n" for example in test_set]    
+    # answer = []
+    # # get numerical answer
+    # for example in test_set['answer']:
+    #     ans = example.split('####')[-1]
+    #     ans = ans.replace(',', '') 
+    #     try:
+    #         ans = float(ans)
+    #     except ValueError:
+    #         ans = float("inf")
+    #     answer.append(ans)
+    return question, answer
