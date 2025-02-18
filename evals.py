@@ -164,9 +164,10 @@ print(base_estimated_scaling_factor, math_estimated_scaling_factor)
 folded_cross_coder = fold_activation_scaling_factor(folded_cross_coder, base_estimated_scaling_factor, math_estimated_scaling_factor)
 folded_cross_coder = folded_cross_coder.to(base_model.cfg.dtype)
 
-num_cals = 10
-tokens = all_tokens_padded.input_ids[torch.randperm(len(all_tokens_padded.input_ids))[:num_cals]]
-masks = all_tokens_padded.attention_mask[torch.randperm(len(all_tokens_padded.attention_mask))[:num_cals]]
+num_cals = 20
+perm_idx = torch.randperm(len(all_tokens_padded.input_ids))[:num_cals]
+tokens = all_tokens_padded.input_ids[perm_idx]
+masks = all_tokens_padded.attention_mask[perm_idx]
 ce_metrics = get_ce_recovered_metrics(tokens, masks, base_model, math_model, folded_cross_coder)
 
 for (k, v) in ce_metrics.items():
